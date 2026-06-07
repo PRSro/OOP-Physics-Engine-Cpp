@@ -1,9 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include "2D/src/classes.hpp"
-#include "2D/src/collisions.hpp"
+#include "2D/src/collisions.cpp"
 
-Shape testShape = Shapes::rectangle(50.0, 50.0);
+Shape testShape=Shapes::rectangle(100.0, 50.0);
 Sprite testSprite(1.0, Materials::Wood, Position(200.0, 200.0, 0.0), testShape);
 
 sf::ConvexShape toSFML(const Shape& shape) {
@@ -14,9 +14,9 @@ sf::ConvexShape toSFML(const Shape& shape) {
 		                     shape.vertices[i].first,
 		                     shape.vertices[i].second
 		                 ));
-	sfShape.setFillColor(sf::Color::Green);
+	sfShape.setFillColor(sf::Color::Blue);
 	sfShape.setOutlineColor(sf::Color::White);
-	sfShape.setOutlineThickness(1.f);
+	sfShape.setOutlineThickness(1.5f);
 	return sfShape;
 }
 
@@ -42,7 +42,7 @@ int main() {
 				window.close();
 			if (event->is<sf::Event::KeyPressed>()) {
 				auto& key = event->getIf<sf::Event::KeyPressed>()->code;
-                std::cout << "key pressed: " << (int)key << "\n"; // add this
+                std::cout << "key pressed: " << (int)key << "\n";
 				if (key == sf::Keyboard::Key::Num2) current = Screen::SIM_2D;
 				else if (key == sf::Keyboard::Key::Num3) current = Screen::SIM_3D;
 			}
@@ -64,24 +64,42 @@ int main() {
 		else if (current == Screen::SIM_2D) {
 			float deltaTime = clock.restart().asSeconds();
 			auto size = window.getSize();
+			Shape Shape2=Shapes::rectangle(size.x+10, 10);
+			Sprite Sprite2(1.0, Materials::Ice, Position(10.0, 10.0, 0.0), Shape2);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
                 testSprite.applyForce(-500.0, 0.0);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
                 testSprite.applyForce(500.0, 0.0);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
                 testSprite.applyForce(0.0, -500.0);
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
+                testSprite.applyForce(0.0, 500.0);
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F))
+                testSprite.fixed=(testSprite.fixed==false)?true:false;
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)){
+				if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::T)){
+					testShape=Shapes::triangle(100.0, 50.0);
+				}
+				if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::C)){
+					testShape=Shapes::circle(50.0, 50.0);
+				}
+				if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R)){
+					testShape=Shapes::rectangle(100.0, 50.0);
+				}
+			}
+			if (AABBcollision(testSprite, Sprite2)==true){
+				resolveCollision(testSprite, Sprite2);
+			}
 			testSprite.update(deltaTime, (double)size.x, (double)size.y);
-             std::cout << "pos: " << testSprite.position.x 
-              << " " << testSprite.position.y
-              << " vy: " << testSprite.velocity_y
-              << " fy: " << testSprite.forces.force_y
-              << "\n";
-			sf::ConvexShape sfShape = toSFML(testShape);
+			sf::ConvexShape sfShape=toSFML(testShape);
+			sf::ConvexShape sfFixedShape=toSFML(Shape2);
 			sfShape.setPosition({
 				(float)testSprite.position.x,
 				(float)testSprite.position.y
 			});
+			sfFixedShape.setPosition({(float)Sprite2.position.x, (float)Sprite2.position.y});
 			window.draw(sfShape);
+			window.draw(sfFixedShape);
 		}
 		else if (current == Screen::SIM_3D) {
 

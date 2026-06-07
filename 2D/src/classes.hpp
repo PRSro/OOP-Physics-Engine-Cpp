@@ -2,16 +2,28 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <string>
 
+namespace Shapetype {
+    enum Type {
+        Circle,
+        Rectangle,
+        Triangle,
+        Unknown
+    };
+};
 struct Shape {
     std::vector<std::pair<double,double>> vertices;
+    Shapetype::Type type; 
+    Shape(Shapetype::Type t) : type(t) {}
     double width()  const {
         double minX=vertices[0].first,  maxX=minX;
         for (auto& v:vertices) {
             minX=std::min(minX, v.first);
             maxX=std::max(maxX, v.first);
         }
-        return maxX-minX;
+        if(type!=Shapetype::Circle){return maxX-minX;}
+        else return maxX;
     }
     double height() const {
         double minY=vertices[0].second, maxY = minY;
@@ -19,38 +31,49 @@ struct Shape {
             minY=std::min(minY, v.second);
             maxY=std::max(maxY, v.second);
         }
-        return maxY-minY;
+        if(type!=Shapetype::Circle){return maxY-minY;}
+        else return maxY+minY;
     }
     int pointCount() const { return vertices.size(); }
 };
 
 namespace Shapes {
-    Shape rectangle(double w, double h) {
-        return {{{0,0},{w,0},{w,h},{0,h}}};
+    inline Shape rectangle(double w, double h) {
+        Shape s(Shapetype::Rectangle); 
+        s.vertices={{0,0}, {w,0}, {w,h}, {0,h}};;
+        return s;
     }
-    Shape triangle(double base, double height) {
-        return {{{0,0},{base,0},{base/2, height}}};
+    inline Shape triangle(double base, double height) {
+        Shape s(Shapetype::Triangle);
+        s.vertices={{{0,0},{base,0},{base/2, height}}};
+        return s;
     }
-    Shape circle(double radius, int segments = 16) {
-        Shape s;
-        for (int i = 0; i < segments; i++) {
-            double a = 2 * M_PI * i / segments;
-            s.vertices.push_back({radius*std::cos(a), radius*std::sin(a)});
+    inline Shape circle(double radius, int segments = 16) {
+        Shape s(Shapetype::Circle);
+        for (int i=0; i<segments; i++) {
+            double a=2*M_PI*i/segments;
+            double x=radius*std::cos(a)+radius;
+            double y=radius*std::sin(a)+radius;
+            s.vertices.push_back({x, y});
         }
         return s;
     }
-}
-
+} 
 struct Material {
     double mu;
     double restitution;
+    std::string type;
+    std::string state;
+    double max_temperature;
 };
 
 namespace Materials {
-    Material Rubber  ={0.8, 0.7};
-    Material Ice     ={0.05, 0.1};
-    Material Wood    ={0.4, 0.35};
-    Material Concrete={0.6, 0.2};
+    inline Material Rubber  ={0.8, 0.7, "Elastic", "Solid", 200.0};
+    inline Material Ice     ={0.005, 0.01, "Plastic", "Solid", 0.0};
+    inline Material Wood    ={0.4, 0.35, "Elastic", "Solid", 150.0};
+    inline Material Concrete={0.6, 0.2, "Plastic", "Solid", 300.0};
+    inline Material Water   ={1.7, 1, "Viscous", "Liquid", 100.0};
+    inline Material Oil     ={4.8, 5, "Viscous", "Liquid", 250.0};
 }
 
 class Forces {
@@ -91,15 +114,17 @@ public:
         }
         void forceCalc() {
         forces.calcValues(mass, material.mu);
-        double grav_y = mass * forces.gravity;
-        double ext_fx = forces.force_x;
-        double ext_fy = forces.force_y;
+        double grav_y=mass*forces.gravity;
+        double ext_fx=forces.force_x;
+        double ext_fy=forces.force_y;
         forces.decomposeForce(applied_force, position.slope);
-            forces.force_x += ext_fx;
-            forces.force_y+=ext_fy+grav_y;
-            if (collision) {
-                double impulse = mass * velocity_y * material.restitution;
-                forces.force_y -= impulse;
+            if(!fixed){
+                forces.force_x+=ext_fx;
+                forces.force_y+=ext_fy+grav_y;
+            }
+            if (collision && !fixed) {
+                double impulse=mass*velocity_y*material.restitution;
+                forces.force_y-=impulse;
             }   
         }
         void update(double deltaTime, double winW, double winH) {
@@ -113,23 +138,23 @@ public:
         position.y+=velocity_y*deltaTime;
         forces.force_x=0;
         forces.force_y=0;
-        if (position.y+shape.height() >= winH) {
-            position.y=winH - shape.height();
+        if (position.y+shape.height()>=winH) {
+            position.y=winH-shape.height();
             velocity_y=-velocity_y * material.restitution;
-            velocity_x*=(1.0 - material.mu * deltaTime);
+            velocity_x*=(1.0-material.mu * deltaTime);
             collision=true;
         } else { collision=false; }
-        if (position.x+shape.width() >= winW) {
-            position.x=winW - shape.width();
+        if (position.x+shape.width()>=winW) {
+            position.x=winW-shape.width();
             velocity_x=-velocity_x * material.restitution;
         }
         if (position.x<=0.0) {
-            position.x=0.0;
-            velocity_x=-velocity_x * material.restitution;
+            position.x=0.5;
+            velocity_x=-velocity_x*material.restitution;
         }
         if (position.y<=0.0) {
-            position.y=0.0;
-            velocity_y=-velocity_y * material.restitution;
+            position.y=0.5;
+            velocity_y=-velocity_y*material.restitution;
         }
     }
 };
