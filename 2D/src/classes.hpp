@@ -113,19 +113,9 @@ public:
             forces.force_y += fy;
         }
         void forceCalc() {
-        forces.calcValues(mass, material.mu);
-        double grav_y=mass*forces.gravity;
-        double ext_fx=forces.force_x;
-        double ext_fy=forces.force_y;
-        forces.decomposeForce(applied_force, position.slope);
-            if(!fixed){
-                forces.force_x+=ext_fx;
-                forces.force_y+=ext_fy+grav_y;
-            }
-            if (collision && !fixed) {
-                double impulse=mass*velocity_y*material.restitution;
-                forces.force_y-=impulse;
-            }   
+            if (fixed) return;
+            double grav_y=mass*forces.gravity;
+            forces.force_y+=grav_y;
         }
         void update(double deltaTime, double winW, double winH) {
         if (fixed) return;
