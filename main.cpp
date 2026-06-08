@@ -8,11 +8,11 @@
 #include "3D/src/render3D.hpp"
 
 Shape testShape = Shapes::rectangle(100.0, 50.0);
-Sprite testSprite(1.0, Materials::Wood, Position(200.0, 200.0, 0.0), testShape);
+Sprite testSprite(1.0, Materials::Wood, Position(250.0, 225.0, 0.0), testShape);
 Shape groundShape = Shapes::rectangle(1010.0, 10.0);
-Sprite groundSprite(1.0, Materials::Ice, Position(0.0, 590.0, 0.0), groundShape);
+Sprite groundSprite(1.0, Materials::Ice, Position(500.0, 595.0, 0.0), groundShape);
 Shape wallShape = Shapes::rectangle(10.0, 600.0);
-Sprite wallSprite(1.0, Materials::Concrete, Position(990.0, 0.0, 0.0), wallShape);
+Sprite wallSprite(1.0, Materials::Concrete, Position(995.0, 300.0, 0.0), wallShape);
 
 std::vector<Sprite*> obstacles = { &groundSprite, &wallSprite };
 
@@ -45,12 +45,12 @@ int main() {
     auto initSize = window.getSize();
     groundShape = Shapes::rectangle(initSize.x, 10.0);
     groundSprite.shape = groundShape;
-    groundSprite.position.x = 0.0;
-    groundSprite.position.y = initSize.y - 10.0;
+    groundSprite.position.x = initSize.x / 2.0;
+    groundSprite.position.y = initSize.y - 5.0;
     wallShape = Shapes::rectangle(10.0, initSize.y);
     wallSprite.shape = wallShape;
-    wallSprite.position.x = initSize.x - 10.0;
-    wallSprite.position.y = 0.0;
+    wallSprite.position.x = initSize.x - 5.0;
+    wallSprite.position.y = initSize.y / 2.0;
     groundSprite.fixed = true;
     wallSprite.fixed = true;
     sf::Clock clock;
@@ -84,12 +84,12 @@ int main() {
                     {(float)resized.x, (float)resized.y})));
                 groundShape = Shapes::rectangle(resized.x, 10.0);
                 groundSprite.shape = groundShape;
-                groundSprite.position.x = 0.0;
-                groundSprite.position.y = resized.y - 10.0;
+                groundSprite.position.x = resized.x / 2.0;
+                groundSprite.position.y = resized.y - 5.0;
                 wallShape = Shapes::rectangle(10.0, resized.y);
                 wallSprite.shape = wallShape;
-                wallSprite.position.x = resized.x - 10.0;
-                wallSprite.position.y = 0.0;
+                wallSprite.position.x = resized.x - 5.0;
+                wallSprite.position.y = resized.y / 2.0;
             }
         }
         window.clear();
@@ -109,7 +109,7 @@ int main() {
                 testSprite.applyForce(0.0, -500.0);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
                 testSprite.applyForce(0.0, 500.0);
-
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Z)) testSprite.angularVel += 0.01;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::T)) {
                     testShape = Shapes::triangle(100.0, 50.0);
@@ -124,15 +124,21 @@ int main() {
                     testSprite.shape = testShape;
                 }
             }
-            resolveAllCollisions(testSprite, obstacles, maxIter);
+            resolveAllCollisions(testSprite, obstacles, deltaTime, maxIter);
             testSprite.update(deltaTime, (double)size.x, (double)size.y);
-            sf::ConvexShape sfShape = toSFML(testShape);
-            sfShape.setPosition({(float)testSprite.position.x,(float)testSprite.position.y});
+            sf::ConvexShape sfShape=toSFML(testShape);
+            sf::Vector2f origin;
+            if (testShape.type == Shapetype::Triangle)
+                origin = {(float)(testShape.width()/2.0), (float)(testShape.height()/3.0)};
+            else
+                origin = {(float)(testShape.width()/2.0), (float)(testShape.height()/2.0)};
+            sfShape.setOrigin(origin);
+            sfShape.setPosition({(float)testSprite.position.x, (float)testSprite.position.y});
+            sfShape.setRotation(sf::degrees(testSprite.angle * 180.0 / M_PI));
             window.draw(sfShape);
             for (auto* obs : obstacles) {
                 sf::ConvexShape sfObs = toSFML(obs->shape);
-                sfObs.setPosition({(float)obs->position.x,
-                                   (float)obs->position.y});
+                sfObs.setPosition({(float)obs->left(), (float)obs->top()});
                 sfObs.setFillColor(sf::Color::Red);
                 window.draw(sfObs);
             }
@@ -150,7 +156,6 @@ int main() {
                 testSprite3D.applyForce(0.0, -500.0, 0.0);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
                 testSprite3D.applyForce(0.0, 500.0, 0.0);
-
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
                 testSprite3D.applyForce(0.0, 0.0, -500.0);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
