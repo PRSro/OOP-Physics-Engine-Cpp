@@ -1,6 +1,6 @@
 # Cpp-Physics-Engine
 
-A 2D/3D physics engine built from scratch in C++ with SFML 3.x rendering. Implements rigid body dynamics, force decomposition, material properties, rotation, and collision resolution without any third-party physics library.
+A 2D/3D physics engine built from scratch in C++ with SFML 3.x rendering. Implements rigid body dynamics, force decomposition, material properties, rotation, and collision resolution without any third-party physics library. [discontinued]
 
 ---
 
